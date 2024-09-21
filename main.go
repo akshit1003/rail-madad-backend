@@ -1,15 +1,27 @@
 package main
 
 import (
-    "github.com/gofiber/fiber/v2"
+	"log"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/joho/godotenv"
+	"rail-madad/routes"
+	_ "rail-madad/config" 
 )
 
 func main() {
-    app := fiber.New()
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file: %v", err)
+	}
 
-    app.Get("/", func(c *fiber.Ctx) error {
-        return c.SendString("Hello, Fiber!")
-    })
+	app := fiber.New()
 
-    app.Listen(":3000")
+	routes.SetupLoginRoutes(app)
+
+	app.Get("/", func(c *fiber.Ctx) error {
+		return c.SendString("Hello, Fiber!")
+	})
+
+	log.Fatal(app.Listen(":3000"))
 }

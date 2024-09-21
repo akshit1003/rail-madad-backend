@@ -13,15 +13,15 @@ import (
 )
 
 type PNRRequest struct {
-	PNR   string                `json:"pnr"`
-	Image *multipart.FileHeader `form:"image"`
+	PNR     string                `json:"pnr"`
+	Subject string                `json:"subject"`
+	Image   *multipart.FileHeader `form:"image"`
 }
 
 func UploadImageToBucket(file *multipart.FileHeader) (string, error) {
 	ctx := context.Background()
 
 	bucketName := os.Getenv("GCS_BUCKET_NAME")
-	// fmt.Println("bucketName", bucketName)
 	if bucketName == "" {
 		return "", fmt.Errorf("bucket name is not configured")
 	}
@@ -54,6 +54,7 @@ func SubmitPNR(c *fiber.Ctx) error {
 	var pnrRequest PNRRequest
 
 	pnrRequest.PNR = c.FormValue("pnr")
+	pnrRequest.Subject = c.FormValue("subject")
 	image, err := c.FormFile("image")
 	if err != nil {
 		log.Printf("Error getting image: %v", err)
@@ -64,8 +65,8 @@ func SubmitPNR(c *fiber.Ctx) error {
 	pnrRequest.Image = image
 
 	log.Printf("Received PNR: %s", pnrRequest.PNR)
-
 	log.Println("Image provided in the request")
+
 	imageURL, err := UploadImageToBucket(pnrRequest.Image)
 	if err != nil {
 		log.Printf("Error uploading image: %v", err)
@@ -75,8 +76,10 @@ func SubmitPNR(c *fiber.Ctx) error {
 	}
 
 	_, err = config.FirestoreClient.Collection("pnrs").Doc(pnrRequest.PNR).Set(context.Background(), map[string]interface{}{
-		"pnr":       pnrRequest.PNR,
-		"image_url": imageURL,
+		"pnr":     pnrRequest.PNR,
+		"subject": pnrRequest.Subject,
+		"image":   imageURL,
+		"status":  "Pending",
 	})
 	if err != nil {
 		log.Printf("Error storing PNR: %v", err)
@@ -86,8 +89,10 @@ func SubmitPNR(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"message":   "PNR submitted successfully",
-		"pnr":       pnrRequest.PNR,
-		"image_url": imageURL,
+		"message": "PNR submitted successfully",
+		"pnr":     pnrRequest.PNR,
+		"image":   imageURL,
+		"subject": pnrRequest.Subject,
+		"status":  "Pending",
 	})
 }

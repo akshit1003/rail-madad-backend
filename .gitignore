@@ -30,5 +30,4 @@ vendor/
 # Dependency files
 go.sum
 
-
 /serviceAccountKey.json

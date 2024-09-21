@@ -7,4 +7,5 @@ import (
 
 func SetupLoginRoutes(app *fiber.App) {
     app.Post("/submit-complaint", controllers.SubmitPNR)
+    app.Get("/get-complaints/:pnr", controllers.GetComplaints)
 }

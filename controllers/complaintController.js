@@ -1,6 +1,7 @@
 import axios from 'axios';
 import admin from '../config/firebase.js';
 import dotenv from 'dotenv';
+import { v4 as uuidv4 } from 'uuid'; 
 
 dotenv.config();
 
@@ -75,7 +76,10 @@ export const submitPNR = async (req, res) => {
         const imageUrl = await uploadImageToBucket(image);
         const queryGenerated = await queryImageCaption(image.buffer);
 
+        const complaintId = uuidv4(); // Generate a unique ID for the complaint
+
         const complaintData = {
+            id: complaintId,
             subject,
             imageUrl,
             queryGenerated,
@@ -94,6 +98,7 @@ export const submitPNR = async (req, res) => {
         res.json({
             message: 'Complaint submitted successfully',
             pnr,
+            complaintId,
             complaintData,
         });
     } catch (error) {

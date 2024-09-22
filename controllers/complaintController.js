@@ -14,26 +14,26 @@ async function queryImageCaption(imageData) {
         const response = await axios.post(API_URL, imageData, {
             headers: {
                 'Authorization': API_KEY,
-                'Content-Type': 'application/octet-stream'
-            }
+                'Content-Type': 'application/octet-stream',
+            },
         });
 
-        console.log("Hugging Face API Response:", response.data);
+        console.log('Hugging Face API Response:', response.data);
 
         if (response.data && response.data.length > 0 && response.data[0].generated_text) {
             return response.data[0].generated_text;
         } else {
-            throw new Error("Invalid response format");
+            throw new Error('Invalid response format');
         }
     } catch (error) {
-        console.error("Error querying image caption:", error);
+        console.error('Error querying image caption:', error);
         throw error;
     }
 }
 
 async function uploadImageToBucket(file) {
     if (!bucketName) {
-        throw new Error("Bucket name is not configured");
+        throw new Error('Bucket name is not configured');
     }
 
     const bucket = admin.storage().bucket(bucketName);
@@ -48,8 +48,6 @@ async function uploadImageToBucket(file) {
                 contentType: file.mimetype,
             },
         });
-
-        // Generate a download URL that doesn't expire
         const [url] = await bucketFile.getSignedUrl({
             action: 'read',
             expires: '03-01-2500',
@@ -57,7 +55,7 @@ async function uploadImageToBucket(file) {
 
         return url;
     } catch (error) {
-        console.error("Error uploading to bucket:", error);
+        console.error('Error uploading to bucket:', error);
         throw error;
     }
 }
@@ -68,34 +66,39 @@ export const submitPNR = async (req, res) => {
         const image = req.file;
 
         if (!image) {
-            return res.status(400).json({ error: "Failed to get image from request" });
+            return res.status(400).json({ error: 'Failed to get image from request' });
         }
 
-        console.log("Received PNR:", pnr);
-        console.log("Image provided in the request");
+        console.log('Received PNR:', pnr);
+        console.log('Image provided in the request');
 
         const imageUrl = await uploadImageToBucket(image);
         const queryGenerated = await queryImageCaption(image.buffer);
 
-        await admin.firestore().collection('pnrs').doc(pnr).set({
-            pnr,
+        const complaintData = {
             subject,
-            imageUrl,  // Store the download URL
+            imageUrl,
             queryGenerated,
-            status: "Pending"
-        });
+            status: 'Pending',
+            submittedAt: new Date().toISOString(),
+        };
+
+        const complaintsRef = admin.firestore().collection('complaints').doc(pnr);
+        await complaintsRef.set(
+            {
+                complaints: admin.firestore.FieldValue.arrayUnion(complaintData),
+            },
+            { merge: true }
+        );
 
         res.json({
-            message: "PNR submitted successfully",
+            message: 'Complaint submitted successfully',
             pnr,
-            imageUrl,  // Return the download URL in the response
-            queryGenerated,
-            subject,
-            status: "Pending"
+            complaintData,
         });
     } catch (error) {
-        console.error("Error in submit-pnr:", error);
-        res.status(500).json({ error: "Internal server error" });
+        console.error('Error in submit-pnr:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 };
 
@@ -104,26 +107,23 @@ export const getComplaints = async (req, res) => {
         const { pnr } = req.params;
 
         if (!pnr) {
-            return res.status(400).json({ error: "PNR is required" });
+            return res.status(400).json({ error: 'PNR is required' });
         }
 
-        const doc = await admin.firestore().collection('pnrs').doc(pnr).get();
+        const doc = await admin.firestore().collection('complaints').doc(pnr).get();
 
         if (!doc.exists) {
-            return res.status(404).json({ error: "PNR not found" });
+            return res.status(404).json({ error: 'PNR not found' });
         }
 
         const pnrData = doc.data();
 
         res.json({
             pnr,
-            subject: pnrData.subject,
-            queryGenerated: pnrData.queryGenerated,
-            imageUrl: pnrData.imageUrl, 
-            status: pnrData.status
+            complaints: pnrData.complaints,
         });
     } catch (error) {
-        console.error("Error in get-complaints:", error);
-        res.status(500).json({ error: "Internal server error" });
+        console.error('Error in get-complaints:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 };

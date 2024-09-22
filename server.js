@@ -1,13 +1,14 @@
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
+import complaintRoute from './routes/complaintRoute.js';
 
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 8080;
 
-const allowedOrigins = ['http://localhost:3000'];
+const allowedOrigins = ['http://localhost:5173'];
 
 const corsOptions = {
     origin: function (origin, callback) {
@@ -21,8 +22,11 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+app.use(express.json());
 
-app.get('/', (req, res) => {
+app.use('/', complaintRoute);
+
+app.get('/', () => {
     res.send('Hello World!');
 });
 

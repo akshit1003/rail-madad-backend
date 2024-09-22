@@ -22,7 +22,11 @@ export const getPendingComplaints = async (req, res) => {
             if (data.complaints && data.complaints.length > 0) {
                 const pending = data.complaints
                     .filter(complaint => complaint.status === "Pending")
-                    .map(complaint => ({ ...complaint, pnr }));
+                    .map(complaint => ({
+                        ...complaint,
+                        pnr,
+                        complaintId: complaint.id 
+                    }));
                 pendingComplaints = pendingComplaints.concat(pending);
             }
         });
@@ -41,7 +45,7 @@ export const getPendingComplaints = async (req, res) => {
 };
 
 export const changeComplaintStatus = async (req, res) => {
-    const { pnr, complaintId, newStatus } = req.body;
+    const { pnr, complaintId, newStatus } = req.body; 
 
     if (!pnr || !complaintId || !newStatus) {
         return res.status(400).json({ message: 'Missing required fields' });
@@ -65,7 +69,7 @@ export const changeComplaintStatus = async (req, res) => {
 
         await complaintRef.update({ complaints: updatedComplaints });
 
-        res.status(200).json({
+        res.status(200).json({ 
             message: 'Complaint status updated successfully',
             pnr,
             complaintId,

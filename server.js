@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import complaintRoute from './routes/complaintRoute.js';
+import adminRoute from './routes/adminRoute.js';
 
 dotenv.config();
 
@@ -25,6 +26,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 app.use('/', complaintRoute);
+app.use('/', adminRoute);
 
 app.get('/', () => {
     res.send('Hello World!');
